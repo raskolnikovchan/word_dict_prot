@@ -9,7 +9,8 @@ from yaml.loader import SafeLoader
 import streamlit_authenticator as stauth
 
 # ユーザー設定読み込み
-yaml_path = os.path.join(os.path.dirname(__file__), "config.yaml")
+current_dir = os.getcwd()
+yaml_path = os.path.join(current_dir, "config.yaml")
 
 with open(yaml_path) as file:
     config = yaml.load(file, Loader=SafeLoader)
@@ -33,26 +34,9 @@ st.write("Profile Page Content")
 
 
 # データベースのパス
-db_path = os.path.join(os.path.dirname(__file__), "word", "words.db") 
+db_path = "D:/UDEMYPython/用語集アプリ/word/words.db" 
 
 
-
-# 1. データベースが無ければ新しく作成する
-def create_database():
-    if not os.path.exists(db_path):
-        conn = sqlite3.connect(db_path)
-        cur = conn.cursor()
-        cur.execute("""
-            CREATE TABLE dict_words (
-                word_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name STRING UNIQUE,
-                meaning TEXT
-            );
-        """)
-        conn.commit()
-        conn.close()
-
-create_database()
 
 # セッションステートの初期化
 if "word_list" not in st.session_state:
@@ -64,7 +48,7 @@ if "new_words" not in st.session_state:
 # 2. 単語を次々と登録していく
 st.title("用語集作成")
 st.write("## 1 単語を入力してください。全て入力したら完了ボタンを押してください。")
-
+save_path = st.text_input("保存先のパスを入力してください", value=os.path.join(os.path.expanduser("~"), "Downloads"))
 with st.form("word_form", clear_on_submit=True):
     name = st.text_input("用語名")
     add_button = st.form_submit_button("追加")
@@ -165,7 +149,7 @@ with st.form("data_to_word",clear_on_submit=True):
 
       
 
-        doc_path = os.path.join(os.path.dirname(__file__), "word", f"{word_title}.docx") 
+        doc_path = os.path.join(save_path, f"{word_title}.docx") 
         doc.save(doc_path)
         st.success("データが保存されました。")
         st.session_state.new_words = []
