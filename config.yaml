@@ -1,0 +1,14 @@
+cookie:
+  expiry_days: 1
+  key: some_signature_key
+  name: some_cookie_name
+credentials:
+  usernames:
+    sobu:
+      email: sample2@example.com
+      name: AliceSmith
+      password: $2b$12$FsTl8dC/ueviF.8AObs59eC3K2fviI5w0fL0U7NXnkkNOW7oz0rvm
+    test:
+      email: sample1@example.com
+      name: test
+      password: $2b$12$.6hwjtQvPS9uxRQA.bqxxuJAjAoZz628fSVTDdumV9e3fDHhWIrxi
