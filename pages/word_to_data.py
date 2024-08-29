@@ -8,6 +8,7 @@ import yaml
 from yaml.loader import SafeLoader
 import streamlit_authenticator as stauth
 
+
 # ユーザー設定読み込み
 current_dir = os.getcwd()
 yaml_path = os.path.join(current_dir, "config.yaml")
@@ -29,7 +30,6 @@ if not st.session_state.get("authentication_status"):
 
 # ログイン成功
 st.write("Profile Page Content")
-
 
 db_path = "D:/UDEMYPython/用語集アプリ/word/words.db" 
 

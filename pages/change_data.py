@@ -28,9 +28,10 @@ if not st.session_state.get("authentication_status"):
 st.write("Profile Page Content")
 
 # データベースのパス
-db_path = "D:/UDEMYPython/用語集アプリ/word/words.db" 
 
+db_path = "D:/UDEMYPython/用語集アプリ/word/words.db" 
 # セッションステートの初期化
+
 if "word_list" not in st.session_state:
     st.session_state.word_list = []
 
@@ -38,6 +39,16 @@ if "new_words" not in st.session_state:
     st.session_state.new_words = []
 
 if "change_words" not in st.session_state:
+    st.session_state.change_words = []
+
+
+
+st.write("最初にリストを削除してください")
+delete_button = st.button("削除")
+
+if delete_button:
+    st.session_state.word_list = []
+    st.session_state.new_words = []
     st.session_state.change_words = []
 
 # 2. 単語を次々と登録していく
@@ -49,7 +60,10 @@ with st.form("word_form", clear_on_submit=True):
     add_button = st.form_submit_button("追加")
 
     if add_button and name:
-        st.session_state.word_list.append(name)
+        if name in st.session_state.word_list:
+            pass
+        else:
+            st.session_state.word_list.append(name)
 
 st.write("現在の用語リスト:", st.session_state.word_list)
 
@@ -138,4 +152,25 @@ if st.session_state.change_words:
 
 
 
+
+
+
+
+
+
+
+# from pathlib import Path
+
+# # 現在のスクリプトが存在するディレクトリのパスを取得
+# base_dir = Path(__file__).resolve().parent
+
+# # データベースへの相対パスを解決
+# db_path = base_dir.parent / 'word' / 'words.db'
+
+# # デバッグ: 解決されたパスを出力
+# print(f"Resolved database path: {db_path}")
+
+# # データベースにアクセス
+# import sqlite3
+# conn = sqlite3.connect(db_path)
 

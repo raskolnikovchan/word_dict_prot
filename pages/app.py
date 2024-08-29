@@ -37,7 +37,6 @@ st.write("Profile Page Content")
 db_path = "D:/UDEMYPython/用語集アプリ/word/words.db" 
 
 
-
 # セッションステートの初期化
 if "word_list" not in st.session_state:
     st.session_state.word_list = []
@@ -152,7 +151,7 @@ with st.form("data_to_word",clear_on_submit=True):
         doc_path = os.path.join(save_path, f"{word_title}.docx") 
         doc.save(doc_path)
         st.success("データが保存されました。")
-        st.session_state.new_words = []
+        st.session_state.word_list = []
         conn.commit()
         conn.close()
 
