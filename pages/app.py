@@ -140,7 +140,7 @@ with st.form("data_to_word", clear_on_submit=True):
                 doc.add_paragraph()
                 double_check.append(word)
 
-        doc_path = os.path.join(save_path, f"{word_title}.docx") 
+        doc_path = f"{word_title}.docx"
         doc.save(doc_path)
         st.success("データが保存されました。")
         st.session_state.word_list = []
