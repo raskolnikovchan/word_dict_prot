@@ -48,6 +48,9 @@ if "word_list" not in st.session_state:
 if "new_words" not in st.session_state:
     st.session_state.new_words = []
 
+if "doc_path" not in st.session_state:  # doc_pathの初期化
+    st.session_state.doc_path = ""
+
 # 2. 単語を次々と登録していく
 st.title("用語集作成")
 st.write("## 1 単語を入力してください。全て入力したら完了ボタンを押してください。")
@@ -101,6 +104,7 @@ if st.session_state.new_words:
 st.write("---")
 st.write(f"## 2 全ての意味を入力したら以下のフォームからwordに出力してください。")
 
+# Word出力のためのフォーム
 with st.form("data_to_word", clear_on_submit=True):
     word_title = st.text_input("タイトル")
     eliminate = st.checkbox("重複した単語を除外する")
@@ -140,16 +144,19 @@ with st.form("data_to_word", clear_on_submit=True):
                 doc.add_paragraph()
                 double_check.append(word)
 
+        # ファイルを保存
         doc_path = f"{word_title}.docx"
         doc.save(doc_path)
-
-
-        with open(doc_path, "rb") as f:
-            st.download_button(
-        label="ダウンロード",
-        data=f,
-        file_name=doc_path,
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-     )
+        st.session_state.doc_path = doc_path  # セッションステートに保存
         st.success("データが保存されました。")
         st.session_state.word_list = []
+
+# ダウンロードボタンを表示
+if st.session_state.doc_path:  # ファイルが存在するか確認
+    with open(st.session_state.doc_path, "rb") as f:
+        st.download_button(
+            label="ダウンロード",
+            data=f,
+            file_name=os.path.basename(st.session_state.doc_path),
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
