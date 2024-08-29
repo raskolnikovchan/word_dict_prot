@@ -31,7 +31,24 @@ if not st.session_state.get("authentication_status"):
 # ログイン成功
 st.write("Profile Page Content")
 
-db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "words.db")
+db_path = "words.db"
+
+def create_database():
+    if not os.path.exists(db_path):
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE dict_words (
+                word_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name STRING UNIQUE,
+                meaning TEXT
+            );
+        """)
+        conn.commit()
+        conn.close()
+
+create_database()
+
 
 
 

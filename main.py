@@ -39,22 +39,5 @@ elif st.session_state["authentication_status"] is None:
 
 
 
-db_path = "words.db"
-
-def create_database():
-    if not os.path.exists(db_path):
-        conn = sqlite3.connect(db_path)
-        cur = conn.cursor()
-        cur.execute("""
-            CREATE TABLE dict_words (
-                word_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name STRING UNIQUE,
-                meaning TEXT
-            );
-        """)
-        conn.commit()
-        conn.close()
-
-create_database()
 
 
