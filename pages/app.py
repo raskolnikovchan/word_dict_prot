@@ -31,7 +31,7 @@ if not st.session_state.get("authentication_status"):
 st.write("Profile Page Content")
 
 
-db_path = "words.db"
+db_path = "./pages/words.db"
 
 def create_database():
     if not os.path.exists(db_path):
