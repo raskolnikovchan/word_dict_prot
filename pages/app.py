@@ -142,5 +142,14 @@ with st.form("data_to_word", clear_on_submit=True):
 
         doc_path = f"{word_title}.docx"
         doc.save(doc_path)
+
+
+        with open(doc_path, "rb") as f:
+            st.download_button(
+        label="ダウンロード",
+        data=f,
+        file_name=doc_path,
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+     )
         st.success("データが保存されました。")
         st.session_state.word_list = []
