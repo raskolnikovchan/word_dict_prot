@@ -31,7 +31,8 @@ if not st.session_state.get("authentication_status"):
 # ログイン成功
 st.write("Profile Page Content")
 
-db_path = "D:/UDEMYPython/用語集アプリ/word/words.db" 
+db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "words.db")
+
 
 
 st.write("# データベースに保存する用語集をアップロードしてください")

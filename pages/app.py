@@ -34,7 +34,9 @@ st.write("Profile Page Content")
 
 
 # データベースのパス
-db_path = "D:/UDEMYPython/用語集アプリ/word/words.db" 
+# db_path = "D:/UDEMYPython/用語集アプリ/word/words.db" 
+
+db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "words.db")
 
 
 # セッションステートの初期化
