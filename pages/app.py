@@ -1,6 +1,6 @@
 import docx.shared
 import streamlit as st
-import sqlite3
+import pandas as pd
 import os
 import docx
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
@@ -30,32 +30,16 @@ if not st.session_state.get("authentication_status"):
 # ログイン成功
 st.write("Profile Page Content")
 
+# CSVファイルのパス
+csv_path = "./pages/dict_words.csv"
 
-db_path = "./pages/words.db"
+def create_csv():
+    if not os.path.exists(csv_path):
+        # 初期データを持つ空のDataFrameを作成
+        df = pd.DataFrame(columns=["name", "meaning"])
+        df.to_csv(csv_path, index=False)
 
-def create_database():
-    if not os.path.exists(db_path):
-        conn = sqlite3.connect(db_path)
-        cur = conn.cursor()
-        cur.execute("""
-            CREATE TABLE dict_words (
-                word_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name STRING UNIQUE,
-                meaning TEXT
-            );
-        """)
-        conn.commit()
-        conn.close()
-
-create_database()
-
-
-
-
-
-# データベースのパス
-# db_path = "D:/UDEMYPython/用語集アプリ/word/words.db" 
-
+create_csv()
 
 # セッションステートの初期化
 if "word_list" not in st.session_state:
@@ -77,21 +61,17 @@ with st.form("word_form", clear_on_submit=True):
 
 st.write("現在の用語リスト:", st.session_state.word_list)
 
-# 3. 登録された単語でデータベースに存在しないものを抽出する
+# 3. 登録された単語でCSVに存在しないものを抽出する
 complete_button = st.button("完了")
 if complete_button:
-    conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
+    df = pd.read_csv(csv_path)
     st.session_state.new_words = []
 
     for word in st.session_state.word_list:
-        cur.execute("SELECT name FROM dict_words WHERE name=?", (word,))
-        if not cur.fetchone():
+        if word not in df['name'].values:
             st.session_state.new_words.append(word)
 
-    conn.close()
-
-# 4. 存在しない単語の意味を手動で入力し、データベースに登録する
+# 4. 存在しない単語の意味を手動で入力し、CSVに登録する
 if st.session_state.new_words:
     st.write("### 1.5 以下の単語はデータベースに存在しません。意味を入力してください。")
 
@@ -104,29 +84,24 @@ if st.session_state.new_words:
         submit_meaning = st.form_submit_button("登録")
 
         if submit_meaning:
-            conn = sqlite3.connect(db_path)
-            cur = conn.cursor()
+            df = pd.read_csv(csv_path)
 
             for word, meaning in new_meaning.items():
                 if meaning.strip():  # 空の意味が入力されていないか確認
-                    cur.execute("INSERT INTO dict_words (name, meaning) VALUES (?, ?)", (word, meaning))
+                    # 新しい行を追加
+                    new_row = pd.DataFrame({"name": [word], "meaning": [meaning]})
+                    df = pd.concat([df, new_row], ignore_index=True)
             
-            conn.commit()
-            conn.close()
+            df.to_csv(csv_path, index=False)
             st.success("意味がデータベースに保存されました")
 
             # リセットする
             st.session_state.new_words = []
 
-
-
 st.write("---")
 st.write(f"## 2 全ての意味を入力したら以下のフォームからwordに出力してください。")
 
-
-
-
-with st.form("data_to_word",clear_on_submit=True):
+with st.form("data_to_word", clear_on_submit=True):
     word_title = st.text_input("タイトル")
     eliminate = st.checkbox("重複した単語を除外する")
     word_submit = st.form_submit_button("wordに出力する")
@@ -134,49 +109,38 @@ with st.form("data_to_word",clear_on_submit=True):
     if word_submit:
         doc = docx.Document()
         title_para = doc.add_paragraph(f"{word_title}")
-        title_run  = title_para.runs[0]
+        title_run = title_para.runs[0]
         title_run.font.size = docx.shared.Pt(30)
-        title_para.alignment =  WD_PARAGRAPH_ALIGNMENT.CENTER
+        title_para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         doc.add_paragraph()
 
-        conn = sqlite3.connect(db_path)
-        cur = conn.cursor()
-        
+        df = pd.read_csv(csv_path)
         double_check = []
         for i, word in enumerate(st.session_state.word_list):
             if eliminate and (word in double_check):
                 continue
 
-            cur.execute("SELECT meaning FROM dict_words WHERE name=?", (word,))
-            meaning = cur.fetchone()
+            meaning_row = df[df['name'] == word]
+            if not meaning_row.empty:
+                meaning = meaning_row['meaning'].values[0]
 
-            paragraph = doc.add_paragraph()
-            run_index = paragraph.add_run(f"{i} ")
-            run_index.font.size = docx.shared.Pt(16)
+                paragraph = doc.add_paragraph()
+                run_index = paragraph.add_run(f"{i} ")
+                run_index.font.size = docx.shared.Pt(16)
 
-            # 太字にする
-            run_word = paragraph.add_run(f"{word}：")
-            run_word.font.bold = True  
-            run_word.font.size = docx.shared.Pt(16)
+                # 太字にする
+                run_word = paragraph.add_run(f"{word}：")
+                run_word.font.bold = True  
+                run_word.font.size = docx.shared.Pt(16)
 
-            # 意味を追加
-            run_meaning = paragraph.add_run(f"{meaning[0]}")
-            run_meaning.font.size = docx.shared.Pt(16)
-            
-            doc.add_paragraph()
-            double_check.append(word)
-
-      
+                # 意味を追加
+                run_meaning = paragraph.add_run(f"{meaning}")
+                run_meaning.font.size = docx.shared.Pt(16)
+                
+                doc.add_paragraph()
+                double_check.append(word)
 
         doc_path = os.path.join(save_path, f"{word_title}.docx") 
         doc.save(doc_path)
         st.success("データが保存されました。")
         st.session_state.word_list = []
-        conn.commit()
-        conn.close()
-
-
-
-
-
-

@@ -1,6 +1,9 @@
+import docx.shared
 import streamlit as st
-import sqlite3
+import pandas as pd
 import os
+import docx
+import re
 import yaml
 from yaml.loader import SafeLoader
 import streamlit_authenticator as stauth
@@ -27,28 +30,18 @@ if not st.session_state.get("authentication_status"):
 # ログイン成功
 st.write("Profile Page Content")
 
-# データベースのパス
-db_path = "./pages/words.db"
+# CSVファイルのパス
+csv_path = "./pages/dict_words.csv"
 
-def create_database():
-    if not os.path.exists(db_path):
-        conn = sqlite3.connect(db_path)
-        cur = conn.cursor()
-        cur.execute("""
-            CREATE TABLE dict_words (
-                word_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name STRING UNIQUE,
-                meaning TEXT
-            );
-        """)
-        conn.commit()
-        conn.close()
+def create_csv():
+    if not os.path.exists(csv_path):
+        # 初期データを持つ空のDataFrameを作成
+        df = pd.DataFrame(columns=["name", "meaning"])
+        df.to_csv(csv_path, index=False)
 
-create_database()
-
+create_csv()
 
 # セッションステートの初期化
-
 if "word_list" not in st.session_state:
     st.session_state.word_list = []
 
@@ -57,8 +50,6 @@ if "new_words" not in st.session_state:
 
 if "change_words" not in st.session_state:
     st.session_state.change_words = []
-
-
 
 st.write("最初にリストを削除してください")
 delete_button = st.button("削除")
@@ -77,31 +68,25 @@ with st.form("word_form", clear_on_submit=True):
     add_button = st.form_submit_button("追加")
 
     if add_button and name:
-        if name in st.session_state.word_list:
-            pass
-        else:
+        if name not in st.session_state.word_list:
             st.session_state.word_list.append(name)
 
 st.write("現在の用語リスト:", st.session_state.word_list)
 
-# 3. 登録された単語でデータベースに存在しないものを抽出する
+# 3. 登録された単語でCSVに存在しないものを抽出する
 complete_button = st.button("完了")
 if complete_button:
-    conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
+    df = pd.read_csv(csv_path)
     st.session_state.new_words = []
     st.session_state.change_words = []
 
     for word in st.session_state.word_list:
-        cur.execute("SELECT name FROM dict_words WHERE name=?", (word,))
-        if not cur.fetchone():
+        if word not in df['name'].values:
             st.session_state.new_words.append(word)
         else:
             st.session_state.change_words.append(word)
 
-    conn.close()
-
-# 4. 存在しない単語の意味を手動で入力し、データベースに登録する
+# 4. 存在しない単語の意味を手動で入力し、CSVに登録する
 if st.session_state.new_words:
     st.write("### 1.5 以下の単語はデータベースに存在しません。意味を入力してください。")
 
@@ -114,34 +99,34 @@ if st.session_state.new_words:
         submit_meaning = st.form_submit_button("登録")
 
         if submit_meaning:
-            conn = sqlite3.connect(db_path)
-            cur = conn.cursor()
+            df = pd.read_csv(csv_path)  # ここでもdfを読み込む
+            new_entries = []
 
             for word, meaning in new_meaning.items():
                 if meaning.strip():  # 空の意味が入力されていないか確認
-                    cur.execute("INSERT INTO dict_words (name, meaning) VALUES (?, ?)", (word, meaning))
+                    # 新しい行を追加
+                    new_entries.append({"name": word, "meaning": meaning})
             
-            conn.commit()
-            conn.close()
-            st.success("意味がデータベースに保存されました")
+            if new_entries:
+                new_df = pd.DataFrame(new_entries)
+                df = pd.concat([df, new_df], ignore_index=True)  # concatを使用
+                df.to_csv(csv_path, index=False)
+                st.success("意味がデータベースに保存されました")
 
             # リセットする
             st.session_state.new_words = []
 
-
-#意味を変更する。
+# 意味を変更する
 if st.session_state.change_words:
     st.write("### 1.5 変更する用語の意味を入力してください。")
+    df = pd.read_csv(csv_path)  # ここでもdfを読み込む
     with st.form("update_form"):
         new_meaning = {}
         for word in st.session_state.change_words:
-            conn = sqlite3.connect(db_path)
-            cur = conn.cursor()
-            cur.execute("SELECT meaning FROM dict_words WHERE name = ?", (word,))
-            result = cur.fetchone()
-            conn.close()
-            if result is not None:
-                meaning = st.text_area(f"{word} の意味を入力してください", value=result[0])
+            # 現在の意味を取得
+            result = df[df['name'] == word]
+            if not result.empty:
+                meaning = st.text_area(f"{word} の意味を入力してください", value=result['meaning'].values[0])
             else:
                 meaning = st.text_area(f"{word} の意味を入力してください")
             new_meaning[word] = meaning
@@ -149,45 +134,14 @@ if st.session_state.change_words:
         submit_meaning = st.form_submit_button("登録")
 
         if submit_meaning:
-            conn = sqlite3.connect(db_path)
-            cur = conn.cursor()
-
             for word, meaning in new_meaning.items():
                 if meaning.strip():  # 空の意味が入力されていないか確認
-                    cur.execute("UPDATE dict_words SET meaning = ? WHERE name = ?",(meaning, word))
+                    # 更新処理
+                    df.loc[df['name'] == word, 'meaning'] = meaning
             
-            conn.commit()
-            conn.close()
+            df.to_csv(csv_path, index=False)
             st.success("意味がデータベースに保存されました")
 
             # リセットする
             st.session_state.new_words = []
             st.session_state.change_words = []
-
-
-
-
-
-
-
-
-
-
-
-
-
-# from pathlib import Path
-
-# # 現在のスクリプトが存在するディレクトリのパスを取得
-# base_dir = Path(__file__).resolve().parent
-
-# # データベースへの相対パスを解決
-# db_path = base_dir.parent / 'word' / 'words.db'
-
-# # デバッグ: 解決されたパスを出力
-# print(f"Resolved database path: {db_path}")
-
-# # データベースにアクセス
-# import sqlite3
-# conn = sqlite3.connect(db_path)
-
