@@ -48,8 +48,11 @@ if "word_list" not in st.session_state:
 if "new_words" not in st.session_state:
     st.session_state.new_words = []
 
-if "doc_path" not in st.session_state:  # doc_pathの初期化
+if "doc_path" not in st.session_state:  
     st.session_state.doc_path = ""
+
+if "concat_list" not in st.session_state:  
+    st.session_state.concat_list = []
 
 # 2. 単語を次々と登録していく
 st.title("用語集作成")
@@ -62,7 +65,15 @@ with st.form("word_form", clear_on_submit=True):
     if add_button and name:
         st.session_state.word_list.append(name)
 
-st.write("現在の用語リスト:", st.session_state.word_list)
+st.write("現在の用語リスト:")
+for i, word in enumerate(st.session_state.word_list):
+    col1, col2 = st.columns([4,1])
+    col1.write(f"{i}:{word}")
+    if col2.button("削除", key=f"{i}_{word}"):
+        st.session_state.word_list.remove(word)
+        st.success(f"{word}を削除しました")
+
+
 
 # 3. 登録された単語でCSVに存在しないものを抽出する
 complete_button = st.button("完了")
@@ -71,7 +82,7 @@ if complete_button:
     st.session_state.new_words = []
 
     for word in st.session_state.word_list:
-        if word not in df['name'].values:
+        if (word not in df['name'].values) and (word not in st.session_state.new_words):
             st.session_state.new_words.append(word)
 
 # 4. 存在しない単語の意味を手動で入力し、CSVに登録する
@@ -80,8 +91,8 @@ if st.session_state.new_words:
 
     with st.form("meaning_form"):
         new_meaning = {}
-        for word in st.session_state.new_words:
-            meaning = st.text_area(f"{word} の意味を入力してください")
+        for i, word in enumerate(st.session_state.new_words):
+            meaning = st.text_area(f"{i},{word} の意味を入力してください")
             new_meaning[word] = meaning
         
         submit_meaning = st.form_submit_button("登録")
@@ -107,6 +118,7 @@ st.write(f"## 2 全ての意味を入力したら以下のフォームからword
 # Word出力のためのフォーム
 with st.form("data_to_word", clear_on_submit=True):
     word_title = st.text_input("タイトル")
+    not_index = st.checkbox("インデックスを表示しない")
     eliminate = st.checkbox("重複した単語を除外する")
     word_submit = st.form_submit_button("wordに出力する")
     
@@ -129,8 +141,11 @@ with st.form("data_to_word", clear_on_submit=True):
                 meaning = meaning_row['meaning'].values[0]
 
                 paragraph = doc.add_paragraph()
-                run_index = paragraph.add_run(f"{i} ")
-                run_index.font.size = docx.shared.Pt(16)
+                if not_index:
+                    pass
+                else:
+                    run_index = paragraph.add_run(f"{i} ")
+                    run_index.font.size = docx.shared.Pt(16)
 
                 # 太字にする
                 run_word = paragraph.add_run(f"{word}：")
@@ -152,6 +167,115 @@ with st.form("data_to_word", clear_on_submit=True):
         st.session_state.word_list = []
 
 # ダウンロードボタンを表示
+
+
+
+st.write("--")
+st.write("# 全てのデータをwordに保存する")
+# Word出力のためのフォーム
+with st.form("csv_to_word", clear_on_submit=True):
+    word_title = st.text_input("タイトル")
+    eliminate = st.checkbox("重複した単語を除外する")
+    word_submit = st.form_submit_button("wordに出力する")
+    
+    if word_submit:
+        doc = docx.Document()
+        title_para = doc.add_paragraph(f"{word_title}")
+        title_run = title_para.runs[0]
+        title_run.font.size = docx.shared.Pt(30)
+        title_para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        doc.add_paragraph()
+
+        df = pd.read_csv(csv_path)
+
+        double_check = []
+        for i, row in df.iterrows():
+            word = row['name']
+            meaning = row['meaning']
+
+            if eliminate and (word in double_check):
+                continue
+
+            paragraph = doc.add_paragraph()
+            run_index = paragraph.add_run(f"{i} ")
+            run_index.font.size = docx.shared.Pt(16)
+
+            # 太字にする
+            run_word = paragraph.add_run(f"{word}：")
+            run_word.font.bold = True  
+            run_word.font.size = docx.shared.Pt(16)
+
+            # 意味を追加
+            run_meaning = paragraph.add_run(f"{meaning}")
+            run_meaning.font.size = docx.shared.Pt(16)
+            
+            doc.add_paragraph()
+            double_check.append(word)
+
+        # ファイルを保存
+        doc_path = f"{word_title}.docx"
+        doc.save(doc_path)
+        st.session_state.doc_path = doc_path  # セッションステートに保存
+        st.success("データが保存されました。")
+        st.session_state.word_list = []
+        st.session_state.concat_list = []
+
+
+
+#wordを結合して表示する
+st.write("--")
+st.write("## 結合word出力")
+with st.form("concat_to_word", clear_on_submit=True):
+    word_title = st.text_input("タイトル")
+    not_index = st.checkbox("インデックスを表示しない")
+    eliminate = st.checkbox("重複した単語を除外する")
+    word_submit = st.form_submit_button("wordに出力する")
+    
+    if word_submit:
+        doc = docx.Document()
+        title_para = doc.add_paragraph(f"{word_title}")
+        title_run = title_para.runs[0]
+        title_run.font.size = docx.shared.Pt(30)
+        title_para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        doc.add_paragraph()
+
+        df = pd.read_csv(csv_path)
+        double_check = []
+        for i, word in enumerate(st.session_state.concat_list):
+            if eliminate and (word in double_check):
+                continue
+
+            meaning_row = df[df['name'] == word]
+            if not meaning_row.empty:
+                meaning = meaning_row['meaning'].values[0]
+
+                paragraph = doc.add_paragraph()
+                if not_index:
+                    pass
+                else:
+                    run_index = paragraph.add_run(f"{i} ")
+                    run_index.font.size = docx.shared.Pt(16)
+
+                # 太字にする
+                run_word = paragraph.add_run(f"{word}：")
+                run_word.font.bold = True  
+                run_word.font.size = docx.shared.Pt(16)
+
+                # 意味を追加
+                run_meaning = paragraph.add_run(f"{meaning}")
+                run_meaning.font.size = docx.shared.Pt(16)
+                
+                doc.add_paragraph()
+                double_check.append(word)
+
+        # ファイルを保存
+        doc_path = f"{word_title}.docx"
+        doc.save(doc_path)
+        st.session_state.doc_path = doc_path  # セッションステートに保存
+        st.success("データが保存されました。")
+        st.session_state.word_list = []
+
+
 if st.session_state.doc_path:  # ファイルが存在するか確認
     with open(st.session_state.doc_path, "rb") as f:
         st.download_button(
@@ -160,3 +284,5 @@ if st.session_state.doc_path:  # ファイルが存在するか確認
             file_name=os.path.basename(st.session_state.doc_path),
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
+
+

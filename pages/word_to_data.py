@@ -33,6 +33,19 @@ st.write("Profile Page Content")
 # CSVファイルのパス
 csv_path = "./pages/dict_words.csv"
 
+
+
+if "concat_list" not in st.session_state:  
+    st.session_state.concat_list = []
+
+
+concat_remove= st.button("結合リストを初期化する")
+if concat_remove:
+    st.session_state.concat_list = []
+
+
+
+
 def create_csv():
     if not os.path.exists(csv_path):
         # 初期データを持つ空のDataFrameを作成
@@ -58,7 +71,9 @@ if file:
     new_entries = []  # 新しいエントリを保持するリスト
 
     for word in lis:
+        word = re.sub(r'^\d+ ', '', word)
         name, meaning = re.split("[:;：；]", word, maxsplit=1)
+        st.session_state.concat_list.append(name)
         # 既存の単語を確認
         if name not in df['name'].values:
             # 新しいエントリをリストに追加
@@ -72,3 +87,6 @@ if file:
     # CSVファイルに保存
     df.to_csv(csv_path, index=False)
     st.success("データベースに登録しました")
+
+
+
