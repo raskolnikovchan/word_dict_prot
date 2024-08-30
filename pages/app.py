@@ -175,9 +175,7 @@ st.write("# 全てのデータをwordに保存する")
 # Word出力のためのフォーム
 with st.form("csv_to_word", clear_on_submit=True):
     word_title = st.text_input("タイトル")
-    eliminate = st.checkbox("重複した単語を除外する")
     word_submit = st.form_submit_button("wordに出力する")
-    
     if word_submit:
         doc = docx.Document()
         title_para = doc.add_paragraph(f"{word_title}")
@@ -227,7 +225,6 @@ st.write("--")
 st.write("## 結合word出力")
 with st.form("concat_to_word", clear_on_submit=True):
     word_title = st.text_input("タイトル")
-    not_index = st.checkbox("インデックスを表示しない")
     eliminate = st.checkbox("重複した単語を除外する")
     word_submit = st.form_submit_button("wordに出力する")
     
@@ -241,7 +238,7 @@ with st.form("concat_to_word", clear_on_submit=True):
 
         df = pd.read_csv(csv_path)
         double_check = []
-        for i, word in enumerate(st.session_state.concat_list):
+        for word in st.session_state.concat_list:
             if eliminate and (word in double_check):
                 continue
 
@@ -250,11 +247,6 @@ with st.form("concat_to_word", clear_on_submit=True):
                 meaning = meaning_row['meaning'].values[0]
 
                 paragraph = doc.add_paragraph()
-                if not_index:
-                    pass
-                else:
-                    run_index = paragraph.add_run(f"{i} ")
-                    run_index.font.size = docx.shared.Pt(16)
 
                 # 太字にする
                 run_word = paragraph.add_run(f"{word}：")
@@ -273,7 +265,7 @@ with st.form("concat_to_word", clear_on_submit=True):
         doc.save(doc_path)
         st.session_state.doc_path = doc_path  # セッションステートに保存
         st.success("データが保存されました。")
-        st.session_state.word_list = []
+        st.session_state.concat_list = []
 
 
 if st.session_state.doc_path:  # ファイルが存在するか確認
