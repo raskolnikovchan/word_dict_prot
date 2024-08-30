@@ -71,7 +71,7 @@ if file:
     new_entries = []  # 新しいエントリを保持するリスト
 
     for word in lis:
-        word = re.sub(r'^\d+ ', '', word)
+        word = re.sub(r'^\d+\s*', '', word)
         name, meaning = re.split("[:;：；]", word, maxsplit=1)
         st.session_state.concat_list.append(name)
         # 既存の単語を確認
