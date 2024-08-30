@@ -89,4 +89,4 @@ if file:
     st.success("データベースに登録しました")
 
 
-
+st.write(st.session_state.concat_list)
